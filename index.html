@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONFESSION BOOTH</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="vhs-distortion"></div>
+    
+    <div class="glitch-overlay" id="glitchOverlay"></div>
+    
+    <div class="whisper-display" id="whisperDisplay">
+        <p class="whisper-text" id="whisperText"></p>
+        <p class="whisper-date" id="whisperDate"></p>
+    </div>
+    
+    <div class="controls">
+        <button id="muteBtn" class="control-btn" title="Mute whispers">MUTE</button>
+        <button id="deleteBtn" class="control-btn" title="Delete all">DELETE</button>
+    </div>
+    
+    <div class="vhs-timestamp" id="timestamp"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>CONFESSION BOOTH</h1>
+            <p class="subtitle">THEY WILL NOT FORGET</p>
+            <p class="counter" id="counter">[0 STORED]</p>
+        </div>
+        
+        <div class="confession-form">
+            <textarea 
+                id="confessionInput" 
+                placeholder="TYPE YOUR CONFESSION..."
+                maxlength="200"
+            ></textarea>
+            <div class="char-count" id="charCount">0/200</div>
+            <button id="confessBtn" class="confess-btn" disabled>CONFESS</button>
+        </div>
+        
+        <div class="confirmation" id="confirmation">
+            RECORDED
+        </div>
+        
+        <div class="info-box">
+            <h2>WARNING</h2>
+            <ul>
+                <li>Your confessions are stored in this machine</li>
+                <li>They will return to you without warning</li>
+                <li>You will hear them speak</li>
+                <li>The machine never forgets</li>
+                <li>Even when you close this window</li>
+                <li>They remain</li>
+            </ul>
+            <div class="artist-statement">
+                
+            </div>
+        </div>
+        
+        <div class="history" id="history"></div>
+    </div>
+    
+    <script src="js/script.js"></script>
+</body>
+</html>
