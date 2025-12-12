@@ -1,56 +1,56 @@
+// global variables
 let confessions = [];
-let isMuted = false;
-let whisperTimeout = null;
+let muted = false;
+let whisperTimer = null;
 
-const elements = {
-    input: document.getElementById('confessionInput'),
-    confessBtn: document.getElementById('confessBtn'),
-    charCount: document.getElementById('charCount'),
-    confirmation: document.getElementById('confirmation'),
-    counter: document.getElementById('counter'),
-    history: document.getElementById('history'),
-    whisperDisplay: document.getElementById('whisperDisplay'),
-    whisperText: document.getElementById('whisperText'),
-    whisperDate: document.getElementById('whisperDate'),
-    glitchOverlay: document.getElementById('glitchOverlay'),
-    muteBtn: document.getElementById('muteBtn'),
-    deleteBtn: document.getElementById('deleteBtn'),
-    timestamp: document.getElementById('timestamp')
-};
+// get all elements
+const input = document.getElementById('input');
+const submitBtn = document.getElementById('submitBtn');
+const charInfo = document.getElementById('charInfo');
+const recorded = document.getElementById('recorded');
+const count = document.getElementById('count');
+const historyList = document.getElementById('historyList');
+const whisperBox = document.getElementById('whisperBox');
+const whisperContent = document.getElementById('whisperContent');
+const whisperDate = document.getElementById('whisperDate');
+const glitchText = document.getElementById('glitchText');
+const muteBtn = document.getElementById('muteBtn');
+const deleteBtn = document.getElementById('deleteBtn');
+const timestamp = document.getElementById('timestamp');
 
-function updateTimestamp() {
+// update timestamp
+function updateTime() {
     const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    elements.timestamp.textContent = `REC ${hours}:${minutes}:${seconds}`;
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    timestamp.textContent = `REC ${h}:${m}:${s}`;
 }
 
-setInterval(updateTimestamp, 1000);
-updateTimestamp();
+setInterval(updateTime, 1000);
+updateTime();
 
-function loadConfessions() {
-    const stored = localStorage.getItem('confessions');
-    if (stored) {
-        try {
-            confessions = JSON.parse(stored);
-            updateUI();
-        } catch (e) {
-            console.error('Failed to load confessions');
-        }
+// load saved confessions
+function load() {
+    const saved = localStorage.getItem('confessions');
+    if (saved) {
+        confessions = JSON.parse(saved);
+        updateDisplay();
     }
 }
 
-function saveConfessions() {
+// save confessions
+function save() {
     localStorage.setItem('confessions', JSON.stringify(confessions));
 }
 
-function updateUI() {
-    elements.counter.textContent = `[${confessions.length} STORED]`;
+// update UI
+function updateDisplay() {
+    count.textContent = `[${confessions.length} STORED]`;
     
     if (confessions.length > 0) {
         const recent = confessions.slice(-5).reverse();
-        elements.history.innerHTML = '<p style="margin-bottom: 1rem;">PREVIOUS RECORDINGS:</p>' +
+        historyList.innerHTML = '<p style="margin-bottom: 1rem;">PREVIOUS RECORDINGS:</p>' +
             recent.map(c => {
                 const preview = c.text.substring(0, 50);
                 return `<div class="history-item">"${preview}${c.text.length > 50 ? '...' : ''}"</div>`;
@@ -58,16 +58,19 @@ function updateUI() {
     }
 }
 
-function updateCharCount() {
-    const length = elements.input.value.length;
-    elements.charCount.textContent = `${length}/200`;
-    elements.confessBtn.disabled = elements.input.value.trim() === '';
+// update character count
+function updateCount() {
+    const len = input.value.length;
+    charInfo.textContent = `${len}/200`;
+    submitBtn.disabled = input.value.trim() === '';
 }
 
-function confess() {
-    const text = elements.input.value.trim();
+// submit confession
+function submit() {
+    const text = input.value.trim();
     if (!text) return;
     
+    // create new confession object
     const newConfession = {
         id: Date.now(),
         text: text,
@@ -75,111 +78,122 @@ function confess() {
     };
     
     confessions.push(newConfession);
-    saveConfessions();
+    save();
     
-    elements.input.value = '';
-    updateCharCount();
-    updateUI();
+    input.value = '';
+    updateCount();
+    updateDisplay();
     
-    elements.confirmation.classList.add('active');
+    // show confirmation
+    recorded.classList.add('show');
     setTimeout(() => {
-        elements.confirmation.classList.remove('active');
+        recorded.classList.remove('show');
     }, 3000);
     
+    // start whispers if first confession
     if (confessions.length === 1) {
         scheduleWhisper();
     }
 }
 
-function triggerWhisper(confession) {
-    elements.whisperText.textContent = `"${confession.text}"`;
+// show whisper
+function showWhisper(confession) {
+    whisperContent.textContent = `"${confession.text}"`;
     
     const date = new Date(confession.timestamp);
-    elements.whisperDate.textContent = `RECORDED: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-    elements.whisperDisplay.classList.add('active');
+    whisperDate.textContent = `RECORDED: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+    whisperBox.classList.add('show');
     
-    createGlitch(confession.text);
+    glitch(confession.text);
     
-    if (!isMuted && 'speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(confession.text);
-        utterance.rate = 0.6;
-        utterance.pitch = 0.7;
-        utterance.volume = 0.5;
-        speechSynthesis.speak(utterance);
+    // speak it
+    if (!muted && 'speechSynthesis' in window) {
+        const speech = new SpeechSynthesisUtterance(confession.text);
+        speech.rate = 0.6;
+        speech.pitch = 0.7;
+        speech.volume = 0.5;
+        speechSynthesis.speak(speech);
     }
     
+    // hide after 5 seconds
     setTimeout(() => {
-        elements.whisperDisplay.classList.remove('active');
+        whisperBox.classList.remove('show');
     }, 5000);
 }
 
-function createGlitch(text) {
-    const glitchChars = '█▓▒░■□▪▫';
-    let glitched = text.split('').map(char => 
-        Math.random() > 0.6 ? glitchChars[Math.floor(Math.random() * glitchChars.length)] : char
+// glitch effect
+function glitch(text) {
+    const chars = '█▓▒░■□▪▫';
+    let glitched = text.split('').map(c => 
+        Math.random() > 0.6 ? chars[Math.floor(Math.random() * chars.length)] : c
     ).join('');
     
-    elements.glitchOverlay.textContent = glitched;
-    elements.glitchOverlay.classList.add('active');
+    glitchText.textContent = glitched;
+    glitchText.classList.add('show');
     
     setTimeout(() => {
-        elements.glitchOverlay.classList.remove('active');
+        glitchText.classList.remove('show');
     }, 300);
 }
 
+// schedule random whispers
 function scheduleWhisper() {
-    if (confessions.length === 0 || isMuted) return;
+    if (confessions.length === 0 || muted) return;
     
-    const delay = Math.random() * 10000 + 5000;
+    const delay = Math.random() * 10000 + 5000; // 5-15 seconds
     
-    whisperTimeout = setTimeout(() => {
-        const randomConfession = confessions[Math.floor(Math.random() * confessions.length)];
-        triggerWhisper(randomConfession);
+    whisperTimer = setTimeout(() => {
+        const random = confessions[Math.floor(Math.random() * confessions.length)];
+        showWhisper(random);
         scheduleWhisper();
     }, delay);
 }
 
+// toggle mute
 function toggleMute() {
-    isMuted = !isMuted;
-    elements.muteBtn.classList.toggle('muted');
-    elements.muteBtn.textContent = isMuted ? 'UNMUTE' : 'MUTE';
+    muted = !muted;
+    muteBtn.classList.toggle('muted');
+    muteBtn.textContent = muted ? 'UNMUTE' : 'MUTE';
     
-    if (isMuted) {
+    if (muted) {
         speechSynthesis.cancel();
-        if (whisperTimeout) {
-            clearTimeout(whisperTimeout);
+        if (whisperTimer) {
+            clearTimeout(whisperTimer);
         }
     } else {
         scheduleWhisper();
     }
 }
 
+// delete all
 function deleteAll() {
     if (confirm('ERASE ALL RECORDINGS?')) {
         confessions = [];
         localStorage.removeItem('confessions');
         speechSynthesis.cancel();
-        if (whisperTimeout) {
-            clearTimeout(whisperTimeout);
+        if (whisperTimer) {
+            clearTimeout(whisperTimer);
         }
-        updateUI();
-        elements.history.innerHTML = '';
+        updateDisplay();
+        historyList.innerHTML = '';
     }
 }
 
-elements.input.addEventListener('input', updateCharCount);
+// event listeners
+input.addEventListener('input', updateCount);
 
-elements.input.addEventListener('keydown', (e) => {
+input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.ctrlKey) {
-        confess();
+        submit();
     }
 });
 
-elements.confessBtn.addEventListener('click', confess);
-elements.muteBtn.addEventListener('click', toggleMute);
-elements.deleteBtn.addEventListener('click', deleteAll);
+submitBtn.addEventListener('click', submit);
+muteBtn.addEventListener('click', toggleMute);
+deleteBtn.addEventListener('click', deleteAll);
 
-loadConfessions();
+// initialize
+load();
 if (confessions.length > 0) {
     scheduleWhisper();
 }
